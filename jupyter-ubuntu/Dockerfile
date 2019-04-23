@@ -29,7 +29,10 @@ ENV DEBIAN_FRONTEND=noninteractive \
     LC_ALL=en_US.UTF-8 \
     LANG=en_US.UTF-8 \
     LANGUAGE=en_US.UTF-8 \
-    HOME=/home/$NB_USER
+    HOME=/home/$NB_USER \
+    GRANT_SUDO=yes \
+    CHOWN_HOME=yes \
+    CHOWN_HOME_OPTS='-R' 
 
 USER root
 
@@ -43,6 +46,7 @@ RUN apt-get update \
         sudo \
         locales \
         fonts-liberation \
+        nginx \
 # cleanup
  && rm -rf /var/lib/apt/lists/* \
 # fix locale
@@ -113,10 +117,17 @@ RUN conda install --quiet --yes \
         "make" \
         "jupyter_nbextensions_configurator" \
         "jupyter_dashboards" \
+        "ipywidgets" \
+        "ipyleaflet" \
+        "qgrid" \
  && conda clean -tipsy \
  && conda clean --all --yes \
  && conda list tini | grep tini | tr -s ' ' | cut -d ' ' -f 1,2 >> $CONDA_DIR/conda-meta/pinned \
- && jupyter labextension install @jupyterlab/hub-extension@^0.12.0 \
+ && jupyter labextension install \
+        @jupyterlab/hub-extension@^0.12.0 \
+        @jupyter-widgets/jupyterlab-manager \
+        qgrid \
+        jupyter-leaflet \
  && npm cache clean --force \
  && jupyter notebook --generate-config \
  && rm -rf $CONDA_DIR/share/jupyter/lab/staging \
