@@ -47,6 +47,9 @@ RUN apt-get update \
         locales \
         fonts-liberation \
         nginx \
+        ssh \
+        git \
+#        build-essential \
 # cleanup
  && rm -rf /var/lib/apt/lists/* \
 # fix locale
@@ -91,28 +94,27 @@ RUN mkdir /home/$NB_USER/work \
  && echo "### Downloading miniconda" \
  && curl -sSL https://repo.continuum.io/miniconda/Miniconda3-${MINICONDA_VERSION}-Linux-x86_64.sh -o /tmp/miniconda.sh \
  && echo `md5sum /tmp/miniconda.sh` \
- && echo "${MINICONDA_HASH} /tmp/miniconda.sh" | md5sum -c - \
- && echo "### Installing miniconda" \
+ && echo "${MINICONDA_HASH} /tmp/miniconda.sh" | md5sum -c - 
+
+RUN echo "### Installing miniconda" \
  && bash /tmp/miniconda.sh -bfp $CONDA_DIR \
- && rm -rf /tmp/miniconda.sh \
- && echo "### Setting up and updating miniconda" \
+ && rm -rf /tmp/miniconda.sh 
+
+RUN echo "### Setting up and updating miniconda" \
  && $CONDA_DIR/bin/conda config --system --prepend channels conda-forge \
  && $CONDA_DIR/bin/conda config --system --set auto_update_conda false \
  && $CONDA_DIR/bin/conda config --system --set show_channel_urls true \
  && $CONDA_DIR/bin/conda install --quiet --yes conda="${CONDA_VERSION%.*}.*" \
- && $CONDA_DIR/bin/conda update --all --quiet --yes \
- && conda clean -tipsy \
- && rm -rf /home/$NB_USER/.cache/yarn \
- && fix-permissions $CONDA_DIR \
- && fix-permissions /home/$NB_USER
+ && $CONDA_DIR/bin/conda update --all --quiet --yes 
 
 # Install all the conda things needed
-RUN conda install --quiet --yes \
+RUN echo "### Install conda packages" \
+ && conda install --quiet --yes \
         "tini=$TINI_VERSION" \
         "notebook=$NOTEBOOK_VERSION" \
         "jupyterhub=$JUPYTERHUB_VERSION" \
         "jupyterlab=$JUPYTERLAB_VERSION" \
-        "make" \
+        "pandas" \
         "jupyter_nbextensions_configurator" \
         "jupyter_dashboards" \
         "ipywidgets" \
@@ -120,13 +122,16 @@ RUN conda install --quiet --yes \
         "qgrid" \
  && conda clean -tipsy \
  && conda clean --all --yes \
- && conda list tini | grep tini | tr -s ' ' | cut -d ' ' -f 1,2 >> $CONDA_DIR/conda-meta/pinned \
+ && conda list tini | grep tini | tr -s ' ' | cut -d ' ' -f 1,2 >> $CONDA_DIR/conda-meta/pinned 
+
+RUN echo "### Install jupyterlab extensions" \
  && jupyter labextension install \
         @jupyterlab/hub-extension@$HUB_EXTENSION_VERSION \
         @jupyter-widgets/jupyterlab-manager@$JUPYTERLAB_MANAGER_VERSION \
         qgrid \
         jupyter-leaflet \
  && npm cache clean --force \
+ && conda clean --all -f -y \
  && jupyter notebook --generate-config \
  && rm -rf $CONDA_DIR/share/jupyter/lab/staging \
  && rm -rf /home/$NB_USER/.cache/yarn \
@@ -151,10 +156,10 @@ USER $NB_UID
 COPY --chown=1000:100 --from=miniconda $CONDA_DIR $CONDA_DIR
 COPY --chown=1000:100 --from=miniconda $HOME $HOME
 
-RUN conda install --quiet --yes \
-        'pandas' \
- && conda clean -tipsy \
- && fix-permissions $CONDA_DIR 
+## RUN conda install --quiet --yes \
+##         'pandas' \
+##  && conda clean -tipsy \
+##  && fix-permissions $CONDA_DIR 
 
 # set startpoints
 EXPOSE 8888
