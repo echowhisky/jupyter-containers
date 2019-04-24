@@ -78,7 +78,9 @@ ENV PATH=$CONDA_DIR/bin:$PATH \
     TINI_VERSION=0.18.0 \
     NOTEBOOK_VERSION=5.7.8 \
     JUPYTERHUB_VERSION=0.9.6 \
-    JUPYTERLAB_VERSION=0.35.4
+    JUPYTERLAB_VERSION=0.35.4 \
+    JUPYTERLAB_MANAGER_VERSION=0.38 \
+    HUB_EXTENSION_VERSION=^0.12.0 
 
 USER $NB_UID
 COPY --chown=1000:100 util/* $CONDA_DIR/bin/
@@ -88,10 +90,6 @@ RUN mkdir /home/$NB_USER/work \
 # Install conda as jovyan and check the md5 sum provided on the download site
  && echo "### Downloading miniconda" \
  && curl -sSL https://repo.continuum.io/miniconda/Miniconda3-${MINICONDA_VERSION}-Linux-x86_64.sh -o /tmp/miniconda.sh \
- && echo "***************"\
- && echo $MINICONDA_VERSION \
- && echo $MINICONDA_HASH "/tmp/miniconda.sh" \
- && echo "***************"\
  && echo `md5sum /tmp/miniconda.sh` \
  && echo "${MINICONDA_HASH} /tmp/miniconda.sh" | md5sum -c - \
  && echo "### Installing miniconda" \
@@ -124,8 +122,8 @@ RUN conda install --quiet --yes \
  && conda clean --all --yes \
  && conda list tini | grep tini | tr -s ' ' | cut -d ' ' -f 1,2 >> $CONDA_DIR/conda-meta/pinned \
  && jupyter labextension install \
-        @jupyterlab/hub-extension@^0.12.0 \
-        @jupyter-widgets/jupyterlab-manager \
+        @jupyterlab/hub-extension@$HUB_EXTENSION_VERSION \
+        @jupyter-widgets/jupyterlab-manager@$JUPYTERLAB_MANAGER_VERSION \
         qgrid \
         jupyter-leaflet \
  && npm cache clean --force \
@@ -159,9 +157,12 @@ RUN conda install --quiet --yes \
  && fix-permissions $CONDA_DIR 
 
 # set startpoints
-EXPOSE 80 443
-ENTRYPOINT ["/tini", "--"]
-USER $NB_UID
+EXPOSE 8888
 WORKDIR $HOME
 
+# Configure container startup
+ENTRYPOINT ["tini", "-g", "--"]
+CMD ["start-notebook.sh"]
+
+USER $NB_UID
 ########################################
