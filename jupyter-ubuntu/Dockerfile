@@ -49,7 +49,7 @@ RUN apt-get update \
         nginx \
         ssh \
         git \
-#        build-essential \
+        build-essential \
 # cleanup
  && rm -rf /var/lib/apt/lists/* \
 # fix locale
